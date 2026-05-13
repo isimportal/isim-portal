@@ -18,8 +18,8 @@ os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 app.config["MAIL_SERVER"] = "smtp.gmail.com"
 app.config["MAIL_PORT"] = 587
 app.config["MAIL_USE_TLS"] = True
-app.config["MAIL_USERNAME"] = "isimportal@gmail.com"
-app.config["MAIL_PASSWORD"] = "mkjz gcjb ksje pxts"
+app.config["MAIL_USERNAME"] = os.environ.get("MAIL_USERNAME")
+app.config["MAIL_PASSWORD"] = os.environ.get("MAIL_PASSWORD")
 app.config["MAIL_DEFAULT_SENDER"] = ("İŞİM Portal", "isimportal@gmail.com")
 
 mail = Mail(app)
