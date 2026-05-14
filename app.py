@@ -1,6 +1,5 @@
 from flask import Flask, request, redirect, session, url_for, send_file
 from werkzeug.utils import secure_filename
-from flask_mail import Mail, Message
 from datetime import datetime, timedelta
 from io import BytesIO
 from openpyxl import Workbook
@@ -8,6 +7,7 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 import os
 import random
 import secrets
+import requests
 
 app = Flask(__name__)
 app.secret_key = "gizli-anahtar"
@@ -15,14 +15,7 @@ app.secret_key = "gizli-anahtar"
 app.config["UPLOAD_FOLDER"] = "static/uploads"
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
-app.config["MAIL_SERVER"] = os.environ.get("MAIL_SERVER")
-app.config["MAIL_PORT"] = int(os.environ.get("MAIL_PORT", 587))
-app.config["MAIL_USE_TLS"] = True
-app.config["MAIL_USERNAME"] = os.environ.get("MAIL_USERNAME")
-app.config["MAIL_PASSWORD"] = os.environ.get("MAIL_PASSWORD")
-app.config["MAIL_DEFAULT_SENDER"] = ("İŞİM Portal", "isimportal@gmail.com")
-
-mail = Mail(app)
+BREVO_API_KEY = os.environ.get("BREVO_API_KEY")
 
 UPDATE_INTERVAL_DAYS = 180
 
@@ -41,8 +34,38 @@ admin_notifications = []
 
 
 def send_email(to, subject, body):
-    msg = Message(subject=subject, recipients=[to], body=body)
-    mail.send(msg)
+    if not BREVO_API_KEY:
+        raise Exception("BREVO_API_KEY Render Environment içinde tanımlı değil.")
+
+    url = "https://api.brevo.com/v3/smtp/email"
+
+    headers = {
+        "accept": "application/json",
+        "api-key": BREVO_API_KEY,
+        "content-type": "application/json"
+    }
+
+    data = {
+        "sender": {
+            "name": "İŞİM Portal",
+            "email": "isimportal@gmail.com"
+        },
+        "to": [
+            {
+                "email": to
+            }
+        ],
+        "subject": subject,
+        "textContent": body
+    }
+
+    response = requests.post(url, json=data, headers=headers, timeout=20)
+
+    print("BREVO STATUS:", response.status_code)
+    print("BREVO RESPONSE:", response.text)
+
+    if response.status_code >= 400:
+        raise Exception(f"Brevo mail gönderme hatası: {response.status_code} - {response.text}")
 
 
 def is_empty(value):
